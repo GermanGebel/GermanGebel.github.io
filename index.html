@@ -1,34 +1,99 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
-  <meta charset="UTF-8">
-  <title>Mini App Камера</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mini App Камера</title>
+
+    <!-- Подключение Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap @5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js "></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: start;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .card {
+            margin-top: 2rem;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            border-radius: 1rem;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        #toggleBtn {
+            padding: 0.6rem 1.5rem;
+            font-size: 1.1rem;
+            border-radius: 0.5rem;
+        }
+    </style>
 </head>
-<body>
-  <h2>Камера</h2>
-  <video id="video" autoplay playsinline style="width: 100%; max-width: 500px;"></video><br><br>
-  <button id="toggleBtn">Начать</button>
 
-  <script>
-    const toggleBtn = document.getElementById('toggleBtn');
-    const video = document.getElementById('video');
+<body class="bg-body text-body">
 
-    let stream;
+    <div class="card shadow-sm p-4">
+        <h3 class="mb-4">Камера</h3>
+        <video id="video" autoplay playsinline></video>
+        <button id="toggleBtn" class="btn btn-primary">Начать</button>
+    </div>
 
-    toggleBtn.addEventListener('click', async () => {
-      if (!stream) {
-        // Получаем доступ к камере
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-        toggleBtn.textContent = 'Стоп';
-      } else {
-        // Останавливаем поток
-        stream.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-        stream = null;
-        toggleBtn.textContent = 'Начать';
-      }
-    });
-  </script>
+    <script>
+        // Получаем данные о Telegram WebApp
+        const tg = window.Telegram.WebApp;
+
+        // Расширяем экран на всю высоту
+        tg.expand();
+
+        // Применяем тему
+        document.body.style.backgroundColor = tg.themeParams.bg_color || '#ffffff';
+        document.body.style.color = tg.themeParams.text_color || '#000000';
+
+        // Меняем стиль кнопки в зависимости от темы
+        const toggleBtn = document.getElementById('toggleBtn');
+        toggleBtn.classList.remove('btn-primary');
+        toggleBtn.classList.add(tg.themeParams.button_color ? 'btn-success' : 'btn-primary');
+
+        // Работа с камерой
+        const video = document.getElementById('video');
+        let stream;
+
+        toggleBtn.addEventListener('click', async () => {
+            if (!stream) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = stream;
+                    toggleBtn.textContent = 'Стоп';
+                } catch (err) {
+                    alert('Не удалось получить доступ к камере.');
+                    console.error(err);
+                }
+            } else {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                stream = null;
+                toggleBtn.textContent = 'Начать';
+            }
+        });
+    </script>
 </body>
+
 </html>

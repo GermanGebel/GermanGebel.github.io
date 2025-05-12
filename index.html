@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini App Камера</title>
+</head>
+<body>
+  <h2>Камера</h2>
+  <video id="video" autoplay playsinline style="width: 100%; max-width: 500px;"></video><br><br>
+  <button id="toggleBtn">Начать</button>
+
+  <script>
+    const toggleBtn = document.getElementById('toggleBtn');
+    const video = document.getElementById('video');
+
+    let stream;
+
+    toggleBtn.addEventListener('click', async () => {
+      if (!stream) {
+        // Получаем доступ к камере
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        toggleBtn.textContent = 'Стоп';
+      } else {
+        // Останавливаем поток
+        stream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        stream = null;
+        toggleBtn.textContent = 'Начать';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -2,12 +2,12 @@
 <html lang="ru">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Face Mesh Mini App</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mini App Камера</title>
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Подключение Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap @5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -21,8 +21,7 @@
             align-items: center;
             justify-content: start;
             min-height: 100vh;
-            background-color: #121212;
-            color: white;
+            transition: background-color 0.3s, color 0.3s;
             font-family: 'Segoe UI', sans-serif;
         }
 
@@ -31,32 +30,20 @@
             width: 90%;
             max-width: 500px;
             text-align: center;
+            border-radius: 1rem;
         }
 
-        video,
-        canvas {
+        video {
             width: 100%;
             height: auto;
             border-radius: 1rem;
             margin-bottom: 1rem;
-            position: absolute;
-            top: 0;
-            left: 0;
         }
 
         #toggleBtn {
             padding: 0.6rem 1.5rem;
             font-size: 1.1rem;
             border-radius: 0.5rem;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Добавленный CSS для визуального состояния при нажатии */
-        #toggleBtn.pressed {
-            background-color: #0056b3 !important;
-            transform: scale(0.98);
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
         }
     </style>
 </head>
@@ -64,145 +51,46 @@
 <body class="bg-body text-body">
 
     <div class="card shadow-sm p-4">
-        <h3 class="mb-4">Face Mesh v0.0.1</h3>
+        <h3 class="mb-4">Камера</h3>
         <video id="video" autoplay playsinline></video>
-        <canvas id="output"></canvas>
-        <button id="toggleBtn" class="btn btn-primary">Start</button>
+        <button id="toggleBtn" class="btn btn-primary">Начать</button>
     </div>
 
-    <!-- MediaPipe FaceMesh -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.min.js"></script>
-
     <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('output');
-        const canvasCtx = canvas.getContext('2d');
-
-        let stream;
-        let faceMesh;
-        let camera;
-
-        // Настройка Telegram
+        // Получаем данные о Telegram WebApp
         const tg = window.Telegram.WebApp;
+
+        // Расширяем экран на всю высоту
         tg.expand();
-        document.body.style.backgroundColor = tg.themeParams.bg_color || '#121212';
-        document.body.style.color = tg.themeParams.text_color || '#ffffff';
 
+        // Применяем тему
+        document.body.style.backgroundColor = tg.themeParams.bg_color || '#ffffff';
+        document.body.style.color = tg.themeParams.text_color || '#000000';
+
+        // Меняем стиль кнопки в зависимости от темы
         const toggleBtn = document.getElementById('toggleBtn');
+        toggleBtn.classList.remove('btn-primary');
+        toggleBtn.classList.add(tg.themeParams.button_color ? 'btn-success' : 'btn-primary');
 
-        function onResults(results) {
-            if (!canvasCtx) return;
+        // Работа с камерой
+        const video = document.getElementById('video');
+        let stream;
 
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-            canvasCtx.drawImage(
-                results.image,
-                0,
-                0,
-                canvas.width,
-                canvas.height
-            );
-
-            if (results.multiFaceLandmarks.length > 0 && window.drawingUtils) {
-                for (const landmarks of results.multiFaceLandmarks) {
-                    drawingUtils.drawConnectors(
-                        canvasCtx,
-                        landmarks,
-                        faceMesh.FACEMESH_TESSELATION,
-                        { color: '#C0C0C070', lineWidth: 1 }
-                    );
-                    drawingUtils.drawConnectors(
-                        canvasCtx,
-                        landmarks,
-                        faceMesh.FACEMESH_CONTOURS,
-                        { color: '#FF0000', lineWidth: 1 }
-                    );
-                    drawingUtils.drawConnectors(
-                        canvasCtx,
-                        landmarks,
-                        faceMesh.FACEMESH_IRISES,
-                        { color: '#00FF00', lineWidth: 1 }
-                    );
-                }
-            }
-            canvasCtx.restore();
-        }
-
-        async function setupCamera() {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-                return new Promise((resolve) => {
-                    video.onloadedmetadata = () => {
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        resolve(video);
-                    };
-                });
-            } catch (err) {
-                alert('Ошибка доступа к камере: ' + err.message);
-                console.error(err);
-                throw err;
-            }
-        }
-
-        async function main() {
-            try {
-                await setupCamera();
-
-                faceMesh = new FaceMesh({
-                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-                });
-
-                faceMesh.setOptions({
-                    maxNumFaces: 1,
-                    refineLandmarks: true,
-                    minDetectionConfidence: 0.5,
-                    minTrackingConfidence: 0.5
-                });
-
-                faceMesh.onResults(onResults);
-
-                camera = new Camera(video, {
-                    onFrame: async () => {
-                        await faceMesh.send({ image: video });
-                    },
-                    width: 640,
-                    height: 480
-                });
-
-                camera.start();
-                toggleBtn.textContent = 'Stop';
-            } catch (err) {
-                alert('Не удалось запустить FaceMesh.');
-                console.error(err);
-            }
-        }
-
-        // Динамическое изменение стиля кнопки при нажатии
-        toggleBtn.addEventListener('mousedown', () => {
-            toggleBtn.classList.add('pressed');
-        });
-
-        toggleBtn.addEventListener('mouseup', () => {
-            toggleBtn.classList.remove('pressed');
-        });
-
-        toggleBtn.addEventListener('mouseleave', () => {
-            toggleBtn.classList.remove('pressed');
-        });
-
-        toggleBtn.addEventListener('click', () => {
+        toggleBtn.addEventListener('click', async () => {
             if (!stream) {
-                main();
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = stream;
+                    toggleBtn.textContent = 'Стоп';
+                } catch (err) {
+                    alert('Не удалось получить доступ к камере.');
+                    console.error(err);
+                }
             } else {
-                if (camera) camera.stop();
-                if (stream) stream.getTracks().forEach(track => track.stop());
+                stream.getTracks().forEach(track => track.stop());
                 video.srcObject = null;
                 stream = null;
-                toggleBtn.textContent = 'Start';
+                toggleBtn.textContent = 'Начать';
             }
         });
     </script>
